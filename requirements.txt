@@ -1,0 +1,9 @@
+# Runtime dependencies. For local dev, install with `pip install -e ".[dev]"`
+# to also pull pytest, ruff, etc.
+langgraph>=0.2.0
+langchain-core>=0.3.0
+langchain-anthropic>=0.2.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.7
+python-dotenv>=1.0.0

@@ -1,0 +1,10 @@
+[
+  { "id": 1, "name": "Electronics", "description": "Smartphones, laptops, tablets, headphones, and other electronic gadgets" },
+  { "id": 2, "name": "Clothing", "description": "Men's and women's apparel including shirts, pants, dresses, and outerwear" },
+  { "id": 3, "name": "Home & Kitchen", "description": "Cookware, appliances, furniture, and home decor items" },
+  { "id": 4, "name": "Sports & Outdoors", "description": "Fitness equipment, outdoor gear, sportswear, and accessories" },
+  { "id": 5, "name": "Books", "description": "Fiction, non-fiction, textbooks, and digital publications" },
+  { "id": 6, "name": "Beauty & Personal Care", "description": "Skincare, haircare, makeup, and personal hygiene products" },
+  { "id": 7, "name": "Toys & Games", "description": "Board games, action figures, puzzles, and children's toys" },
+  { "id": 8, "name": "Grocery & Gourmet", "description": "Organic foods, snacks, beverages, and gourmet ingredients" }
+]
