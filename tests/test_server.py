@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
+from langgraph.errors import GraphRecursionError
 
 from agentstore.server import app
 
@@ -43,3 +44,23 @@ def test_chat_rejects_empty_query():
     with TestClient(app) as client:
         r = client.post("/api/chat", json={"query": ""})
         assert r.status_code == 422
+
+
+def test_chat_handles_recursion_limit_gracefully():
+    """A supervisor/worker loop that never reaches FINISH within
+    RECURSION_LIMIT should surface as a normal answer, not an opaque 500."""
+
+    class _StubGraph:
+        def invoke(self, state, config=None):
+            raise GraphRecursionError(
+                "Recursion limit of 8 reached without hitting a stop condition."
+            )
+
+    with patch("agentstore.server.get_graph", return_value=_StubGraph()):
+        with TestClient(app) as client:
+            r = client.post("/api/chat", json={"query": "a very complex multi-domain question"})
+            assert r.status_code == 200
+            body = r.json()
+            assert body["agent"] == "supervisor"
+            assert "narrower" in body["answer"]
+            assert isinstance(body["latency_ms"], int)
