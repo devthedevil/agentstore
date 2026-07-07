@@ -15,6 +15,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel, Field
 
 from .config import get_settings
@@ -78,6 +79,13 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+RECURSION_LIMIT_MESSAGE = (
+    "This question needed more back-and-forth between specialists than we allow per "
+    "request. Try asking a narrower question, or split it into separate questions — "
+    "one per topic (sales, inventory, reviews, customer)."
+)
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest) -> ChatResponse:
     start = time.perf_counter()
@@ -85,6 +93,17 @@ def chat(req: ChatRequest) -> ChatResponse:
         result: dict[str, Any] = get_graph().invoke(
             {"messages": [HumanMessage(content=req.query)]},
             config={"recursion_limit": RECURSION_LIMIT},
+        )
+    except GraphRecursionError:
+        # Not a server error: the supervisor/worker loop hit its hop budget
+        # without reaching FINISH (e.g. a question spanning many domains, or
+        # the LLM bouncing indecisively between specialists). Surface it as a
+        # normal answer so the UI renders a helpful chat bubble instead of a
+        # red error toast with an internal LangGraph error message.
+        return ChatResponse(
+            answer=RECURSION_LIMIT_MESSAGE,
+            agent="supervisor",
+            latency_ms=int((time.perf_counter() - start) * 1000),
         )
     except Exception as exc:  # noqa: BLE001 — bubble up as 500 with a short msg
         raise HTTPException(status_code=500, detail=f"graph error: {exc}") from exc
