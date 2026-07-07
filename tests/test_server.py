@@ -10,7 +10,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
 
-from agentstore.server import app
+from agentstore.server import _allow_credentials_for, app
 
 
 def test_health_returns_ok():
@@ -43,3 +43,21 @@ def test_chat_rejects_empty_query():
     with TestClient(app) as client:
         r = client.post("/api/chat", json={"query": ""})
         assert r.status_code == 422
+
+
+# ── CORS ─────────────────────────────────────────────────────────────────────
+#
+# Wildcard origin + allow_credentials=True is an unsafe combination: browsers
+# refuse a literal "*" on a credentialed response, so CORS middlewares
+# (including Starlette's) reflect back whatever Origin header the request
+# sent instead — meaning any site could get its origin accepted and make
+# credentialed requests, defeating CORS entirely. Credentials must only be
+# enabled once explicit, non-wildcard origins are configured.
+
+
+def test_wildcard_origin_disallows_credentials():
+    assert _allow_credentials_for(["*"]) is False
+
+
+def test_explicit_origins_allow_credentials():
+    assert _allow_credentials_for(["https://example.com", "http://localhost:5173"]) is True
