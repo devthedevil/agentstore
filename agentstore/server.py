@@ -39,10 +39,26 @@ def _cors_origins() -> list[str]:
         return ["*"]
 
 
+def _allow_credentials_for(origins: list[str]) -> bool:
+    """Only allow credentialed cross-origin requests for an explicit origin list.
+
+    Wildcard origin + allow_credentials=True is an unsafe combination: browsers
+    refuse a literal "*" on the response to a credentialed request, so CORS
+    middlewares (including Starlette's) work around that by reflecting back
+    whatever Origin header the request sent. That means any site can have its
+    origin accepted and make credentialed requests, which defeats CORS
+    entirely. Only enable credentials once real, explicit origins are
+    configured — never for the wildcard fallback above.
+    """
+    return "*" not in origins
+
+
+_ALLOWED_ORIGINS = _cors_origins()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_origins(),
-    allow_credentials=True,
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_credentials=_allow_credentials_for(_ALLOWED_ORIGINS),
     allow_methods=["*"],
     allow_headers=["*"],
 )
